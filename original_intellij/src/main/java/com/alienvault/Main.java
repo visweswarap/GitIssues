@@ -2,6 +2,7 @@ package com.alienvault;
 
 import com.alienvault.resp.GitIssuesResp;
 import com.alienvault.resp.Issue;
+import com.alienvault.resp.TopPerDay;
 import com.google.gson.Gson;
 
 import java.io.BufferedReader;
@@ -10,10 +11,8 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * GitHub Issues -------------
@@ -84,6 +83,34 @@ public class Main {
                 issuesByRepo.addAll(getIssuesByRepo(repo));
             }
             resp.setIssues(issuesByRepo);
+
+            List<String> dates = issuesByRepo.stream().map(a -> a.getCreated_at().substring(0, 10)).collect(Collectors.toList());
+
+            Set<String> uniqDateStrings = new HashSet<>();
+            Map<String, Integer> issuesCountByDateMap = new HashMap<>();
+
+            for(String date : dates) {
+                if(uniqDateStrings.add(date)){
+                    issuesCountByDateMap.put(date, 1);
+                } else {
+                    Integer count = issuesCountByDateMap.get(date);
+                    issuesCountByDateMap.put(date, count+1);
+                }
+            }
+            LinkedHashMap<String, Integer> sortedMap = issuesCountByDateMap
+                    .entrySet()
+                    .stream()
+                    .sorted(Collections.reverseOrder(Map.Entry.comparingByValue()))
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e2,
+                            LinkedHashMap::new));
+
+            Map.Entry<String, Integer> first = sortedMap.entrySet().iterator().next();
+            String topDate = first.getKey();
+            Integer topCount = first.getValue();
+
+            TopPerDay top_day = new TopPerDay();
+            top_day.setDay(topDate);
+            //top_day.setOccurrences();
 
         } catch (MalformedURLException e) {
             e.printStackTrace();
